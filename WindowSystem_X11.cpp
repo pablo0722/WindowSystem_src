@@ -13,7 +13,7 @@
 //
 //      This function initialized the native X11 display and window for EGL
 //
-bool WinSystem::create(const char *title, int posx, int posy, int width, int height)
+bool WindowSystem::create(const char *title, int posx, int posy, int width, int height)
 {
     Window defaultRootWindow;
 
@@ -104,19 +104,19 @@ bool WinSystem::create(const char *title, int posx, int posy, int width, int hei
     return true;
 }
 
-void WinSystem::registerKeyFunc(void (*keyFunc)(void *ctx, unsigned char keyChar, int x, int y)) {
+void WindowSystem::registerKeyFunc(void (*keyFunc)(void *ctx, unsigned char keyChar, int x, int y)) {
     this->keyFunc = keyFunc;
 }
 
-Display *WinSystem::getNativeDisplay() const {
+Display *WindowSystem::getNativeDisplay() const {
     return display;
 }
 
-Window WinSystem::getNativeWindow() const {
+Window WindowSystem::getNativeWindow() const {
     return window;
 }
 
-WinSystem::Event WinSystem::getEvents(void *ctx) const
+WindowSystem::Event WindowSystem::getEvents(void *ctx) const
 {
     Event ret = Event::Empty;
     XEvent xev;
