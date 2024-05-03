@@ -1,4 +1,4 @@
-#include "WindowSystem/WindowSystem.hpp"
+#include "WindowSystem/EglWindowSystem.hpp"
 
 #include <stdio.h>
 #include <string.h>
@@ -8,7 +8,7 @@
 #include  <X11/Xatom.h>
 #include  <X11/Xutil.h>
 
-bool WindowSystem::getDisplay() {
+bool EglWindowSystem::getDisplay() {
     display = XOpenDisplay(NULL);
     if ( display == NULL )
     {
@@ -18,7 +18,7 @@ bool WindowSystem::getDisplay() {
     return true;
 }
 
-bool WindowSystem::createWindow(const char *title, int posx, int posy, int width, int height) {
+bool EglWindowSystem::createWindow(const char *title, int posx, int posy, int width, int height) {
     Window defaultRootWindow;
 
     defaultRootWindow = DefaultRootWindow(display);
@@ -99,7 +99,7 @@ bool WindowSystem::createWindow(const char *title, int posx, int posy, int width
 //
 //      This function initialized the native X11 display and window for EGL
 //
-bool WindowSystem::create(const char *title, int posx, int posy, int width, int height)
+bool EglWindowSystem::create(const char *title, int posx, int posy, int width, int height)
 {
     printf("%s: creating native window\n", __func__);
 
@@ -115,19 +115,19 @@ bool WindowSystem::create(const char *title, int posx, int posy, int width, int 
     return true;
 }
 
-void WindowSystem::registerKeyFunc(void (*keyFunc)(void *ctx, unsigned char keyChar, int x, int y)) {
+void EglWindowSystem::registerKeyFunc(void (*keyFunc)(void *ctx, unsigned char keyChar, int x, int y)) {
     this->keyFunc = keyFunc;
 }
 
-Display *WindowSystem::getNativeDisplay() const {
+Display *EglWindowSystem::getNativeDisplay() const {
     return display;
 }
 
-Window WindowSystem::getNativeWindow() const {
+Window EglWindowSystem::getNativeWindow() const {
     return window;
 }
 
-WindowSystem::Event WindowSystem::getEvent(void *ctx) const
+EglWindowSystem::Event EglWindowSystem::getEvent(void *ctx) const
 {
     Event ret = Event::Empty;
     XEvent xev;
