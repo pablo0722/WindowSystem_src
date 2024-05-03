@@ -1,4 +1,4 @@
-#include "WindowSystem/WindowSystem.hpp"
+#include "WindowSystem/WindowSystemLinux.hpp"
 
 #include <stdio.h>
 #include <string.h>
@@ -8,33 +8,19 @@
 #include  <X11/Xatom.h>
 #include  <X11/Xutil.h>
 
-///
-//  winSystem_Create()
-//
-//      This function initialized the native X11 display and window for EGL
-//
-bool WindowSystem::create(const char *title, int posx, int posy, int width, int height)
-{
-    Window defaultRootWindow;
-
-    printf("%s: creating native window\n", __func__);
-
-    /*
-     * X11 native display initialization
-     */
-
+void WindowSystemLinux::attachToNativeDisplay() {
     display = XOpenDisplay(NULL);
-    if ( display == NULL )
-    {
-        return false;
-    }
+}
+
+void WindowSystemLinux::createNativeWindow(const char *title, int posx, int posy, int width, int height) {
+    Window defaultRootWindow;
 
     defaultRootWindow = DefaultRootWindow(display);
 
     {
         XSetWindowAttributes swa;
 
-        swa.event_mask  =  ExposureMask | PointerMotionMask | KeyPressMask;
+        swa.event_mask = ExposureMask | PointerMotionMask | KeyPressMask;
         window = XCreateWindow(
                 display, defaultRootWindow,
                 posx, posy, width, height, 0,
@@ -66,7 +52,7 @@ bool WindowSystem::create(const char *title, int posx, int posy, int width, int 
         xSizeHints.y      = posy;
         xSizeHints.width  = width;
         xSizeHints.height = height;
-        XSetNormalHints(display, window, &xSizeHints);  /* Where new_window is the new window */
+        XSetNormalHints(display, window, &xSizeHints);
     }
 
     // make the window visible on the screen
@@ -98,58 +84,55 @@ bool WindowSystem::create(const char *title, int posx, int posy, int width, int 
             &xev );
         }
     }
-
-    printf("%s: end creating native window\n", __func__);
-
-    return true;
 }
 
-void WindowSystem::registerKeyFunc(void (*keyFunc)(void *ctx, unsigned char keyChar, int x, int y)) {
-    this->keyFunc = keyFunc;
-}
-
-Display *WindowSystem::getNativeDisplay() const {
-    return display;
-}
-
-Window WindowSystem::getNativeWindow() const {
-    return window;
-}
-
-WindowSystem::Event WindowSystem::getEvents(void *ctx) const
-{
-    Event ret = Event::Empty;
+void WindowSystemLinux::getEvent(WindowEvent *event) const {
     XEvent xev;
     KeySym keySymbol;
     char keyChar;
 
     // Pump all messages from X server. Keypresses are directed to keyfunc (if defined)
-    while(XPending(display))
+    if(XPending(display))
     {
+        event->type = WindowEvent::Type::OtherEvent;
+
         XNextEvent(display, &xev);
-        if(KeyPress == xev.type)
-        {
-            if(1 == XLookupString(&xev.xkey, &keyChar, 1, &keySymbol, 0))
-            {
-                printf("%s: key received: '%c' (%d)\n", __func__, keyChar, keyChar);
-                if (keyFunc != NULL) {
-                    keyFunc(ctx, keyChar, 0, 0);
+        switch(xev.type) {
+            case KeyPress: {
+                if(1 == XLookupString(&xev.xkey, &keyChar, 1, &keySymbol, 0))
+                {
+                    printf("%s: key received: '%c' (%d)\n", __func__, keyChar, keyChar);
+                    event->type = WindowEvent::Type::KeyPressEvent;
+                    event->keyPressed = keyChar;
+                    event->x = 0;
+                    event->y = 0;
                 }
-            }
-        }
-        if(xev.type == ClientMessage) {
-            if(xev.xclient.data.l[0] == deleteMessage) {
-                // Received when alt+F4 or "x" icon is clicked
-                printf("%s: Delete Message\n", __func__);
-                ret = Event::Delete;
-            }
-        }
-        if(xev.type == DestroyNotify) {
-            // Received when calling XDestroyWindow() or XDestroySubwindows()
-            printf("%s: Destroy notify\n", __func__);
-            ret = Event::Delete;
+            } break;
+
+            case ClientMessage: {
+                if(xev.xclient.data.l[0] == deleteMessage) {
+                    // Received when alt+F4 or "x" icon is clicked
+                    printf("%s: Delete Message\n", __func__);
+                    event->type = WindowEvent::Type::DeleteEvent;
+                }
+            } break;
+
+            case DestroyNotify: {
+                // Received when calling XDestroyWindow() or XDestroySubwindows()
+                printf("%s: Destroy notify\n", __func__);
+                event->type = WindowEvent::Type::DeleteEvent;
+            } break;
         }
     }
+    else {
+        event->type = WindowEvent::Type::NoEvent;
+    }
+}
 
-    return ret;
+Display *WindowSystemLinux::getNativeDisplay() const {
+    return display;
+}
+
+Window WindowSystemLinux::getNativeWindow() const {
+    return window;
 }
